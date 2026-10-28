@@ -1,140 +1,142 @@
-# Cijene u srpskim maloprodajnim lancima: SQL analiza otvorenih podataka
+# Prices in Serbian Retail Chains: SQL Analysis of Open Data
 
-Autor: Matea Masleša
+**Language:** English | [Srpski](README.sr.md)
 
-Projekat analizira cjenovnike četiri maloprodajna lanca u Srbiji (Delhaize/Maxi, IDEA, Univerexport i dm) koje su trgovci dužni da objavljuju kao otvorene podatke. Podaci su očišćeni, složeni u relacionu bazu sa više povezanih tabela i analizirani SQL upitima: poređenje cijena istih proizvoda među lancima, promjena cijena kroz vrijeme i poređenje drogerije (dm) sa supermarketima.
+Author: Matea Masleša
 
-## Podaci
+This project analyses the price lists of four retail chains in Serbia (Delhaize/Maxi, IDEA, Univerexport and dm), which retailers are required to publish as open data. The data were cleaned, loaded into a relational database with several linked tables and analysed with SQL: comparing prices of identical products across chains, price changes over time, and comparing a drugstore (dm) with supermarkets.
 
-- **Izvor:** Portal otvorenih podataka (data.gov.rs), skupovi *Cjenovnici proizvoda prema Pravilniku o uslovima, sadržaju i načinu objavljivanja cjenovnika*, po jedan za svakog trgovca. Linkovi su u [`data/README.md`](data/README.md).
-- **Licenca:** Srpska licenca za otvorene podatke (obavezno navođenje izvora i datuma preuzimanja). Preuzeto 23.10.2026.
-- **Obim:** 457.348 redova, 15 kolona u sva četiri fajla, tri cjenovnika po trgovcu: mjesečni presjeci od 1.9. i 1.10.2026. i važeći cjenovnik (20. i 23.10.2026.).
-- Sirovi podaci **nisu u repozitoriju**; skripte ih učitavaju iz `data/raw/`.
+## Data
 
-## Baza podataka
+- **Source:** open data portal (data.gov.rs), the datasets *Price lists of products according to the Rulebook on the conditions, content and manner of publishing price lists* (original title in Serbian: *Cjenovnici proizvoda prema Pravilniku o uslovima, sadržaju i načinu objavljivanja cjenovnika*), one per retailer. Links are in [`data/README.md`](data/README.md).
+- **Licence:** Serbian Open Data Licence (the source and download date must be stated). Downloaded on 23 October 2026.
+- **Size:** 457,348 rows, 15 columns in all four files, three price lists per retailer: monthly snapshots from 1 Sep and 1 Oct 2026 and the current price list (20 and 23 Oct 2026).
+- The raw data are **not in the repository**; the scripts load them from `data/raw/`.
 
-Zvjezdasta šema: dimenzije i jedna tabela činjenica.
+## Database
 
-| Tabela | Sadržaj |
+Star schema: dimensions and one fact table. (Table and column names are in Serbian.)
+
+| Table | Content |
 |---|---|
-| `trgovac` | 4 trgovca i tip (supermarket ili drogerija) |
-| `format_prodavnice` | 12 formata (Maxi, Mega Maxi, MERCATOR, RODA...) |
-| `kategorija` | zajednička šifra od 25 kategorija |
-| `proizvod` | jedan red po barkodu (zajednički ključ među lancima) |
-| `cjenovnik` | trgovac + datum + vrsta cjenovnika |
-| `cijena` | tabela činjenica: cijena po formatu, cjenovniku i proizvodu |
-| `kvalitet_log` | evidencija čišćenja |
+| `trgovac` | 4 retailers and their type (supermarket or drugstore) |
+| `format_prodavnice` | 12 store formats (Maxi, Mega Maxi, MERCATOR, RODA...) |
+| `kategorija` | the shared list of 25 categories |
+| `proizvod` | one row per barcode (the shared key across chains) |
+| `cjenovnik` | retailer + date + type of price list |
+| `cijena` | fact table: price per format, price list and product |
+| `kvalitet_log` | log of cleaning decisions |
 
-## Čišćenje podataka
+## Data cleaning
 
-Učitano 457.348 redova, u bazi ostaje 456.538. Sve odluke su zabilježene u tabeli `kvalitet_log`:
+457,348 rows were loaded and 456,538 remain in the database. All decisions are recorded in the table `kvalitet_log`:
 
-| Problem | Trgovac | Redova | Odluka |
+| Issue | Retailer | Rows | Decision |
 |---|---|---|---|
-| barkod u više kategorija | svi | 519 | uzeta najčešća kategorija |
-| duplikat sa različitim cijenama | Univerexport | 33 | uklonjeno (ne znamo koja je tačna) |
-| nepoznata jedinica mjere | dm | 6 | grupa ostaje NULL |
-| potpuni duplikat | Delhaize | 12 | ostavljen jedan red |
-| red bez barkoda | Delhaize | 15 | uklonjeno (proizvod se ne može povezati) |
-| redovna cijena prazna ili 0 | Delhaize | 3 | uklonjeno (nema smislene cijene) |
-| redovna cijena prazna ili 0 | Univerexport | 747 | uklonjeno (nema smislene cijene) |
-| snižena cijena = 0 | Univerexport | 131.007 | pretvoreno u NULL (nema sniženja) |
-| snižena cijena >= redovne | IDEA | 109 | pretvoreno u NULL (greška u podacima) |
-| snižena cijena >= redovne | dm | 2 | pretvoreno u NULL (greška u podacima) |
+| barcode in several categories | all | 519 | most frequent category used |
+| duplicate with different prices | Univerexport | 33 | removed (we cannot know which is correct) |
+| unknown unit of measure | dm | 6 | group stays NULL |
+| exact duplicate | Delhaize | 12 | one row kept |
+| row without barcode | Delhaize | 15 | removed (product cannot be linked) |
+| regular price empty or 0 | Delhaize | 3 | removed (no meaningful price) |
+| regular price empty or 0 | Univerexport | 747 | removed (no meaningful price) |
+| discounted price = 0 | Univerexport | 131,007 | converted to NULL (no discount) |
+| discounted price >= regular | IDEA | 109 | converted to NULL (data error) |
+| discounted price >= regular | dm | 2 | converted to NULL (data error) |
 
-Dodatno: jedinice mjere (kg, KG, lit, L, kom, 1kom, 100ml...) razvrstane su u grupe (masa, zapremina, komad, dužina), uz zadržanu izvornu vrijednost.
+In addition, units of measure (kg, KG, lit, L, kom, 1kom, 100ml...) were grouped (mass, volume, piece, length), keeping the original value.
 
-## Metodološke odluke
+## Methodological decisions
 
-- **Format prodavnice mijenja cijenu.** Maxi, Maxi Online i Mega Maxi imaju gotovo iste cijene (manje od 1% razlike), a Profi (oko 5% jeftiniji) i Shop and Go (oko 4% skuplji) odstupaju. Zato se poredi po **jedan standardni format** po lancu: Mega Maxi, IDEA i UNIVEREXPORT - M (srednji format po cijenama).
-- **dm je drogerija.** Ima 76% asortimana u kategoriji lične higijene i kozmetike, a samo 25% njegovih proizvoda postoji i u nekom supermarketu. Zato se **supermarketi međusobno porede po svim kategorijama, a dm odvojeno**, samo na zajedničkim proizvodima.
-- Poređenje se radi **po barkodu** (isti proizvod, isto pakovanje) i po **redovnoj cijeni**.
+- **Store format changes the price.** Maxi, Maxi Online and Mega Maxi have almost identical prices (under 1% difference), while Profi (about 5% cheaper) and Shop and Go (about 4% more expensive) deviate. Therefore **one standard format** per chain is compared: Mega Maxi, IDEA and UNIVEREXPORT - M (the middle format by price level).
+- **dm is a drugstore.** 76% of its range is personal hygiene and cosmetics, and only 25% of its products also exist in some supermarket. So **supermarkets are compared with each other across all categories, while dm is compared separately**, only on shared products.
+- Comparison is done **by barcode** (same product, same package) and on the **regular price**.
 
-## Rezultati
+## Results
 
-### Koji proizvodi se mogu porediti
-Od 31.146 proizvoda u tri supermarketa, njih **5.267** se prodaje u sva tri, 6.403 u dva, a 19.476 u samo jednom.
+### Which products can be compared
+Of 31,146 products across the three supermarkets, **5,267** are sold in all three, 6,403 in two and 19,476 in only one.
 
-![proizvodi](results/01_proizvodi_po_broju_lanaca.png)
+![products](results/01_proizvodi_po_broju_lanaca.png)
 
-### Ko je najjeftiniji (samo proizvodi u sva tri supermarketa)
-Za 5.267 zajedničkih proizvoda: **Delhaize** je imao najnižu cijenu kod 47,8% proizvoda, Univerexport kod 35,7%, IDEA kod 32,2%. Zbir prelazi 100% jer se kod 724 proizvoda najniža cijena poklapa u dva lanca. Razlike su male: medijana je 0,4% (Delhaize), 3,0% (Univerexport) i 3,8% (IDEA) iznad najjeftinije cijene.
+### Who is cheapest (only products sold in all three supermarkets)
+For the 5,267 shared products: **Delhaize** had the lowest price for 47.8% of products, Univerexport for 35.7% and IDEA for 32.2%. The shares add up to more than 100% because for 724 products the lowest price is tied between two chains. Differences are small: the median is 0.4% (Delhaize), 3.0% (Univerexport) and 3.8% (IDEA) above the lowest price.
 
-![najjeftiniji](results/02_najjeftiniji_lanac.png)
+![cheapest](results/02_najjeftiniji_lanac.png)
 
-### Promjena cijena kroz vrijeme
-| Trgovac | Period | Proizvoda | Poskupilo | Pojeftinilo | Promijenjeno |
+### Price changes over time
+| Retailer | Period | Products | Increased | Decreased | Changed |
 |---|---|---|---|---|---|
-| Delhaize | 01.09. → 01.10. | 10.899 | 1.065 | 109 | 10,8% |
-| Delhaize | 01.10. → 23.10. | 10.972 | 568 | 99 | 6,1% |
-| IDEA | 01.09. → 01.10. | 19.540 | 1.379 | 140 | 7,8% |
-| IDEA | 01.10. → 23.10. | 20.076 | 579 | 153 | 3,6% |
-| Univerexport | 01.09. → 01.10. | 16.279 | 1.189 | 1.397 | 15,9% |
-| Univerexport | 01.10. → 23.10. | 16.239 | 830 | 587 | 8,7% |
-| dm | 01.09. → 01.10. | 15.030 | 754 | 1.688 | 16,2% |
-| dm | 01.10. → 20.10. | 15.142 | 60 | 24 | 0,6% |
+| Delhaize | 1 Sep → 1 Oct | 10,899 | 1,065 | 109 | 10.8% |
+| Delhaize | 1 Oct → 23 Oct | 10,972 | 568 | 99 | 6.1% |
+| IDEA | 1 Sep → 1 Oct | 19,540 | 1,379 | 140 | 7.8% |
+| IDEA | 1 Oct → 23 Oct | 20,076 | 579 | 153 | 3.6% |
+| Univerexport | 1 Sep → 1 Oct | 16,279 | 1,189 | 1,397 | 15.9% |
+| Univerexport | 1 Oct → 23 Oct | 16,239 | 830 | 587 | 8.7% |
+| dm | 1 Sep → 1 Oct | 15,030 | 754 | 1,688 | 16.2% |
+| dm | 1 Oct → 20 Oct | 15,142 | 60 | 24 | 0.6% |
 
-Ukupno od prvog do posljednjeg cjenovnika:
+Total change from the first to the last price list:
 
-| Trgovac | Proizvoda | Promijenjeno | Poskupilo | Pojeftinilo | Prosj. promjena promijenjenih |
+| Retailer | Products | Changed | Increased | Decreased | Mean change among changed |
 |---|---|---|---|---|---|
-| Delhaize | 11.059 | 16,0% | 1.582 | 183 | 5,1% |
-| IDEA | 20.076 | 10,5% | 1.885 | 224 | 7,4% |
-| Univerexport | 16.498 | 22,5% | 1.908 | 1.812 | -0,4% |
-| dm | 15.285 | 16,4% | 798 | 1.707 | -4,7% |
+| Delhaize | 11,059 | 16.0% | 1,582 | 183 | 5.1% |
+| IDEA | 20,076 | 10.5% | 1,885 | 224 | 7.4% |
+| Univerexport | 16,498 | 22.5% | 1,908 | 1,812 | -0.4% |
+| dm | 15,285 | 16.4% | 798 | 1,707 | -4.7% |
 
-![promjene](results/03_promjena_cijena_po_koracima.png)
+![changes](results/03_promjena_cijena_po_koracima.png)
 
-Delhaize i IDEA su uglavnom poskupljivali, dm je pretežno pojeftinjivao (skoro sve između 1.9. i 1.10.), a Univerexport je imao podjednako poskupljenja i pojeftinjenja. Među kategorijama u supermarketima najviše je poskupjela „Brašno, dodaci za pečenje i kolače i praškasti proizvodi“ (prosječno 2,33%), a jedina sa blagim padom je „Sveža i prerađena riba“ (-0,51%). Pregled ekstremnih promjena pokazuje da dio „skokova“ vjerovatno nisu poskupljenja (npr. „DINJA“ sa 79,99 na 259,99, što je vjerovatno sezonska cijena ili promjena načina vaganja), pa se rezultati moraju čitati oprezno.
+Delhaize and IDEA mostly raised prices, dm mostly lowered them (almost all between 1 Sep and 1 Oct), and Univerexport had about as many increases as decreases. Among supermarket categories the largest increase was in "Flour, baking ingredients and powdered products" (on average 2.33%), and the only category with a slight decrease was "Fresh and processed fish" (-0.51%). A review of extreme changes shows that some of the "jumps" are probably not price increases (e.g. "DINJA", a melon, from 79.99 to 259.99, probably a seasonal price or a change in how it is weighed), so results must be read with care.
 
-### dm naspram supermarketa
-Za 3.903 proizvoda koje prodaju i dm i bar jedan supermarket, dm ima **nižu redovnu cijenu od najjeftinijeg supermarketa kod 76,0%** proizvoda (skuplji kod 23,6%). Medijana odnosa dm cijene prema najjeftinijem supermarketu je 0,888.
+### dm vs supermarkets
+For 3,903 products sold by both dm and at least one supermarket, dm has a **lower regular price than the cheapest supermarket for 76.0%** of products (higher for 23.6%). The median ratio of the dm price to the cheapest supermarket price is 0.888.
 
-| Kategorija | Proizvoda | dm jeftiniji | Prosječna razlika |
+| Category | Products | dm cheaper | Mean difference |
 |---|---|---|---|
-| Pelene | 46 | 46 | -21,1% |
-| Papirna i kuhinjska galanterija | 194 | 160 | -15,2% |
-| Kućna hemija | 544 | 425 | -12,3% |
-| Hrana za kućne ljubimce | 59 | 55 | -11,5% |
-| Hrana za bebe | 199 | 152 | -9,6% |
-| Lična higijena i kozmetika | 2.383 | 1.802 | -9,6% |
-| Bezalkoholna pića, kafa, čaj | 93 | 68 | -8,1% |
-| Prerada voća i povrća i biljni namazi | 67 | 55 | -8,1% |
-| Slatki konditori i cerealije | 177 | 113 | -4,0% |
+| Diapers | 46 | 46 | -21.1% |
+| Paper and kitchen goods | 194 | 160 | -15.2% |
+| Household chemicals | 544 | 425 | -12.3% |
+| Pet food | 59 | 55 | -11.5% |
+| Baby food | 199 | 152 | -9.6% |
+| Personal hygiene and cosmetics | 2,383 | 1,802 | -9.6% |
+| Soft drinks, coffee, tea | 93 | 68 | -8.1% |
+| Processed fruit and vegetables and spreads | 67 | 55 | -8.1% |
+| Sweets and cereals | 177 | 113 | -4.0% |
 
 ![dm](results/04_dm_naspram_supermarketa.png)
 
-## Ograničenja
+## Limitations
 
-- Podaci pokrivaju **oko sedam sedmica** (tri cjenovnika), pa se ne mogu izvoditi zaključci o dugoročnim trendovima.
-- Poredi se samo **jedan format po lancu** i **redovna cijena** (bez sniženja i bez težina prodaje). Rezultat je poređenje **zajedničkih proizvoda**, a ne cijene korpe, pa se ne može reći koji je lanac „najjeftiniji“ uopšte.
-- Cijene su na nivou formata, a ne konkretne prodavnice, pa nema poređenja gradova.
-- Zajednički proizvodi su vjerovatno popularnije robne marke, što može uticati na poređenje sa dm-om.
-- Neke očigledne greške u podacima su obrađene (nule, duplikati), ali sumnjive cijene (npr. 107.565 din za jedan deterdžent) nisu ručno ispravljane.
-- Nazivi, jedinice i kategorije dolaze od trgovaca i nisu potpuno ujednačeni.
+- The data cover **about seven weeks** (three price lists), so no conclusions about long-term trends can be drawn.
+- Only **one format per chain** and the **regular price** are compared (without discounts and without sales weights). The result is a comparison of **shared products**, not of a shopping basket, so it cannot be said which chain is "cheapest" overall.
+- Prices are at store-format level, not for individual stores, so cities cannot be compared.
+- Shared products are probably the more popular brands, which may affect the comparison with dm.
+- Obvious data errors were handled (zeros, duplicates), but suspicious prices (e.g. 107,565 RSD for a single detergent) were not corrected by hand.
+- Names, units and categories come from the retailers and are not fully consistent.
 
-## Korišćene SQL tehnike
+## SQL techniques used
 
-`JOIN` (uključujući spajanje tabele sa samom sobom), `GROUP BY` i `HAVING`, podupiti i `EXISTS`, CTE (`WITH`), pogledi (`VIEW`), uslovno agregiranje (`CASE WHEN`), prozorske funkcije (`RANK`, `ROW_NUMBER`, `LAG`, `MIN() OVER`), čišćenje podataka i projektovanje zvjezdaste šeme.
+`JOIN` (including a self join), `GROUP BY` and `HAVING`, subqueries and `EXISTS`, CTEs (`WITH`), views, conditional aggregation (`CASE WHEN`), window functions (`RANK`, `ROW_NUMBER`, `LAG`, `MIN() OVER`), data cleaning and star-schema design.
 
-## Struktura i pokretanje
+## Structure and usage
 
 ```
-data/        uputstvo za preuzimanje podataka (sirovi fajlovi se ne objavljuju)
-sql/mssql/   T-SQL: šema, uvoz podataka i analitički upiti (SQL Server)
-sql/sqlite/  šema za SQLite (koristi je Python)
-src/         Python skripte (čišćenje i izgradnja baze, izvoz, grafici)
-results/     tabele (csv) i grafici (png)
+data/        instructions for downloading the data (raw files are not published)
+sql/mssql/   T-SQL: schema, data import and analytical queries (SQL Server)
+sql/sqlite/  SQLite schema (used by Python)
+src/         Python scripts (cleaning and building the database, export, figures)
+results/     tables (csv) and figures (png)
 ```
 
-**Opcija A: SQL Server (SSMS).** Upiti u `sql/mssql/` pisani su u T-SQL-u.
-1. Preuzmi podatke u `data/raw/` (vidi `data/README.md`) i pokreni `python src/01_build_sqlite_db.py`, a zatim `python src/02_export_for_mssql.py` (pravi CSV fajlove u `data/mssql_csv/`).
-2. U SSMS-u napravi bazu (`CREATE DATABASE retail;`), pa redom pokreni `00_schema.sql`, `01_import_data.sql` (prvo promijeni putanju u prvom redu), a zatim `02_basics.sql` do `05_dm_vs_supermarkets.sql`.
+**Option A: SQL Server (SSMS).** The queries in `sql/mssql/` are written in T-SQL. Comments in the SQL files are in Serbian.
+1. Download the data into `data/raw/` (see `data/README.md`), run `python src/01_build_sqlite_db.py` and then `python src/02_export_for_mssql.py` (creates CSV files in `data/mssql_csv/`).
+2. In SSMS create a database (`CREATE DATABASE retail;`), then run `00_schema.sql` and `01_import_data.sql` in order (change the path in the first line first), followed by `02_basics.sql` through `05_dm_vs_supermarkets.sql`.
 
-**Opcija B: Python + SQLite.**
+**Option B: Python + SQLite.**
 ```bash
 pip install -r requirements.txt
-python src/01_build_sqlite_db.py      # čišćenje i baza db/retail.db
-python src/03_results_and_figures.py  # tabele i grafici u results/
+python src/01_build_sqlite_db.py      # cleaning and database db/retail.db
+python src/03_results_and_figures.py  # tables and figures in results/
 ```
-Skripte se pokreću iz korijena repozitorija.
+Run the scripts from the repository root.
