@@ -29,14 +29,14 @@ Zvjezdasta šema: dimenzije i jedna tabela činjenica.
 
 ## Čišćenje podataka
 
-Učitano 457.348 redova, u bazi ostaje 456.538. Sve odluke su zabilježene u tabeli `kvalitet_log`:
+Učitano 457.348 redova, u bazi ostaje 456.538 (uklonjeno 810 redova: 33 + 15 + 3 + 747 + 12). Sve odluke su zabilježene u tabeli `kvalitet_log`:
 
 | Problem | Trgovac | Redova | Odluka |
 |---|---|---|---|
 | barkod u više kategorija | svi | 519 | uzeta najčešća kategorija |
 | duplikat sa različitim cijenama | Univerexport | 33 | uklonjeno (ne znamo koja je tačna) |
 | nepoznata jedinica mjere | dm | 6 | grupa ostaje NULL |
-| potpuni duplikat | Delhaize | 12 | ostavljen jedan red |
+| potpuni duplikat | Delhaize | 12 | uklonjeno 12 suvišnih kopija (ostaje po jedan red) |
 | red bez barkoda | Delhaize | 15 | uklonjeno (proizvod se ne može povezati) |
 | redovna cijena prazna ili 0 | Delhaize | 3 | uklonjeno (nema smislene cijene) |
 | redovna cijena prazna ili 0 | Univerexport | 747 | uklonjeno (nema smislene cijene) |

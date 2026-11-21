@@ -29,14 +29,14 @@ Star schema: dimensions and one fact table. (Table and column names are in Serbi
 
 ## Data cleaning
 
-457,348 rows were loaded and 456,538 remain in the database. All decisions are recorded in the table `kvalitet_log`:
+457,348 rows were loaded and 456,538 remain in the database (810 rows removed: 33 + 15 + 3 + 747 + 12). All decisions are recorded in the table `kvalitet_log`:
 
 | Issue | Retailer | Rows | Decision |
 |---|---|---|---|
 | barcode in several categories | all | 519 | most frequent category used |
 | duplicate with different prices | Univerexport | 33 | removed (we cannot know which is correct) |
 | unknown unit of measure | dm | 6 | group stays NULL |
-| exact duplicate | Delhaize | 12 | one row kept |
+| exact duplicate | Delhaize | 12 | 12 surplus copies removed (one row of each kept) |
 | row without barcode | Delhaize | 15 | removed (product cannot be linked) |
 | regular price empty or 0 | Delhaize | 3 | removed (no meaningful price) |
 | regular price empty or 0 | Univerexport | 747 | removed (no meaningful price) |
